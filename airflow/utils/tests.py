@@ -20,11 +20,8 @@
 import re
 import unittest
 
-import attr
-
-from airflow.models import TaskInstance
-from airflow.models.baseoperator import BaseOperator, BaseOperatorLink
-from airflow.utils.decorators import apply_defaults
+from airflow.models import BaseOperator
+from airflow.models.baseoperator import BaseOperatorLink
 
 
 def skipUnlessImported(module, obj):
@@ -74,70 +71,12 @@ class Dummy3TestOperator(BaseOperator):
     operator_extra_links = ()
 
 
-@attr.s
-class CustomBaseIndexOpLink(BaseOperatorLink):
-    index = attr.ib(type=int)   # type: int
-
-    @property
-    def name(self):
-        return 'BigQuery Console #{index}'.format(index=self.index + 1)
-
-    def get_link(self, operator, dttm):
-        ti = TaskInstance(task=operator, execution_date=dttm)
-        search_queries = ti.xcom_pull(task_ids=operator.task_id, key='search_query')
-        if not search_queries:
-            return None
-        if len(search_queries) < self.index:
-            return None
-        search_query = search_queries[self.index]
-        return 'https://console.cloud.google.com/bigquery?j={}'.format(search_query)
-
-
-class CustomOpLink(BaseOperatorLink):
-    """
-    Operator Link for Apache Airflow Website
-    """
-    name = 'Google Custom'
-
-    def get_link(self, operator, dttm):
-        ti = TaskInstance(task=operator, execution_date=dttm)
-        search_query = ti.xcom_pull(task_ids=operator.task_id, key='search_query')
-        return 'http://google.com/custom_base_link?search={}'.format(search_query)
-
-
-class CustomOperator(BaseOperator):
-
-    template_fields = ['bash_command']
-
-    @property
-    def operator_extra_links(self):
-        """
-        Return operator extra links
-        """
-        if isinstance(self.bash_command, str) or self.bash_command is None:
-            return (
-                CustomOpLink(),
-            )
-        return (
-            CustomBaseIndexOpLink(i) for i, _ in enumerate(self.bash_command)
-        )
-
-    @apply_defaults
-    def __init__(self, bash_command=None, *args, **kwargs):
-        super(CustomOperator, self).__init__(*args, **kwargs)
-        self.bash_command = bash_command
-
-    def execute(self, context):
-        self.log.info("Hello World!")
-        context['task_instance'].xcom_push(key='search_query', value="dummy_value")
-
-
 class GoogleLink(BaseOperatorLink):
     """
     Operator Link for Apache Airflow Website for Google
     """
     name = 'google'
-    operators = [Dummy3TestOperator, CustomOperator]
+    operators = [Dummy3TestOperator]
 
     def get_link(self, operator, dttm):
         return 'https://www.google.com'

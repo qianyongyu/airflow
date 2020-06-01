@@ -17,7 +17,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from sqlalchemy import Column, Integer, String, Text, func
+from sqlalchemy import Column, Integer, String, Text
 
 from airflow.models.base import Base
 from airflow.utils.state import State
@@ -30,7 +30,6 @@ class Pool(Base):
 
     id = Column(Integer, primary_key=True)
     pool = Column(String(50), unique=True)
-    # -1 for infinite
     slots = Column(Integer, default=0)
     description = Column(Text)
 
@@ -65,11 +64,11 @@ class Pool(Base):
         from airflow.models.taskinstance import TaskInstance  # Avoid circular import
         return (
             session
-            .query(func.sum(TaskInstance.pool_slots))
+            .query(TaskInstance)
             .filter(TaskInstance.pool == self.pool)
             .filter(TaskInstance.state.in_(STATES_TO_COUNT_AS_RUNNING))
-            .scalar()
-        ) or 0
+            .count()
+        )
 
     @provide_session
     def used_slots(self, session):
@@ -80,11 +79,11 @@ class Pool(Base):
 
         running = (
             session
-            .query(func.sum(TaskInstance.pool_slots))
+            .query(TaskInstance)
             .filter(TaskInstance.pool == self.pool)
             .filter(TaskInstance.state == State.RUNNING)
-            .scalar()
-        ) or 0
+            .count()
+        )
         return running
 
     @provide_session
@@ -96,18 +95,15 @@ class Pool(Base):
 
         return (
             session
-            .query(func.sum(TaskInstance.pool_slots))
+            .query(TaskInstance)
             .filter(TaskInstance.pool == self.pool)
             .filter(TaskInstance.state == State.QUEUED)
-            .scalar()
-        ) or 0
+            .count()
+        )
 
     @provide_session
     def open_slots(self, session):
         """
         Returns the number of slots open at the moment
         """
-        if self.slots == -1:
-            return float('inf')
-        else:
-            return self.slots - self.occupied_slots(session)
+        return self.slots - self.occupied_slots(session)

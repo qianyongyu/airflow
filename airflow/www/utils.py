@@ -26,10 +26,14 @@ from builtins import str, object
 from io import BytesIO as IO
 import functools
 import gzip
+import io
 import json
+import os
+import re
 import time
 import wtforms
 from wtforms.compat import text_type
+import zipfile
 
 from flask import after_this_request, request, Markup, Response
 from flask_admin.model import filters
@@ -133,13 +137,18 @@ def generate_pages(current_page, num_of_pages,
     This component takes into account custom parameters such as search and showPaused,
     which could be added to the pages link in order to maintain the state between
     client and server. It also allows to make a bookmark on a specific paging state.
-
-    :param current_page: the current page number, 0-indexed
-    :param num_of_pages: the total number of pages
-    :param search: the search query string, if any
-    :param showPaused: false if paused dags will be hidden, otherwise true to show them
-    :param window: the number of pages to be shown in the paging component (7 default)
-    :return: the HTML string of the paging component
+    :param current_page:
+        the current page number, 0-indexed
+    :param num_of_pages:
+        the total number of pages
+    :param search:
+        the search query string, if any
+    :param showPaused:
+        false if paused dags will be hidden, otherwise true to show them
+    :param window:
+        the number of pages to be shown in the paging component (7 default)
+    :return:
+        the HTML string of the paging component
     """
 
     void_link = 'javascript:void(0)'
@@ -382,6 +391,24 @@ def gzipped(f):
     return view_func
 
 
+ZIP_REGEX = re.compile(r'((.*\.zip){})?(.*)'.format(re.escape(os.sep)))
+
+
+def open_maybe_zipped(f, mode='r'):
+    """
+    Opens the given file. If the path contains a folder with a .zip suffix, then
+    the folder is treated as a zip archive, opening the file inside the archive.
+
+    :return: a file object, as in `open`, or as in `ZipFile.open`.
+    """
+
+    _, archive, filename = ZIP_REGEX.search(f).groups()
+    if archive and zipfile.is_zipfile(archive):
+        return zipfile.ZipFile(archive, mode=mode).open(filename)
+    else:
+        return io.open(f, mode=mode)
+
+
 def make_cache_key(*args, **kwargs):
     """
     Used by cache to get a unique key per URL
@@ -391,16 +418,10 @@ def make_cache_key(*args, **kwargs):
     return (path + args).encode('ascii', 'ignore')
 
 
-def get_python_source(x, return_none_if_x_none=False):
+def get_python_source(x):
     """
     Helper function to get Python source (or not), preventing exceptions
     """
-    if isinstance(x, str):
-        return x
-
-    if x is None and return_none_if_x_none:
-        return None
-
     source_code = None
 
     if isinstance(x, functools.partial):

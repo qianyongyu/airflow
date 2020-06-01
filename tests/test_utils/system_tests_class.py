@@ -24,7 +24,7 @@ except ImportError:
 
 from shutil import move
 from tempfile import mkdtemp
-from unittest import SkipTest, TestCase
+from unittest import TestCase, skip
 
 from airflow import AirflowException, models, settings
 from airflow.configuration import AIRFLOW_HOME, AirflowConfigParser, get_airflow_config
@@ -95,10 +95,11 @@ class empty_dags_directory(  # pylint:disable=invalid-name
 
 
 class SystemTest(TestCase, LoggingMixin):
-    def run(self, result=None):
+    @staticmethod
+    def skip():
         if os.environ.get('ENABLE_SYSTEM_TESTS') != 'true':
-            raise SkipTest(SKIP_SYSTEM_TEST_WARNING)
-        return super(SystemTest, self).run(result)
+            return skip(SKIP_SYSTEM_TEST_WARNING)
+        return lambda cls: cls
 
     def setUp(self):
         """

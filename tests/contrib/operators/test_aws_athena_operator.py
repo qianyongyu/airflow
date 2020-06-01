@@ -36,8 +36,7 @@ MOCK_DATA = {
     'query': 'SELECT * FROM TEST_TABLE',
     'database': 'TEST_DATABASE',
     'outputLocation': 's3://test_s3_bucket/',
-    'client_request_token': 'eac427d0-1c6d-4dfb-96aa-2835d3ac6595',
-    'workgroup': 'primary'
+    'client_request_token': 'eac427d0-1c6d-4dfb-96aa-2835d3ac6595'
 }
 
 query_context = {
@@ -81,7 +80,7 @@ class TestAWSAthenaOperator(unittest.TestCase):
     def test_hook_run_small_success_query(self, mock_conn, mock_run_query, mock_check_query_status):
         self.athena.execute(None)
         mock_run_query.assert_called_once_with(MOCK_DATA['query'], query_context, result_configuration,
-                                               MOCK_DATA['client_request_token'], MOCK_DATA['workgroup'])
+                                               MOCK_DATA['client_request_token'])
         self.assertEqual(mock_check_query_status.call_count, 1)
 
     @mock.patch.object(AWSAthenaHook, 'check_query_status', side_effect=("RUNNING", "RUNNING", "SUCCESS",))
@@ -90,7 +89,7 @@ class TestAWSAthenaOperator(unittest.TestCase):
     def test_hook_run_big_success_query(self, mock_conn, mock_run_query, mock_check_query_status):
         self.athena.execute(None)
         mock_run_query.assert_called_once_with(MOCK_DATA['query'], query_context, result_configuration,
-                                               MOCK_DATA['client_request_token'], MOCK_DATA['workgroup'])
+                                               MOCK_DATA['client_request_token'])
         self.assertEqual(mock_check_query_status.call_count, 3)
 
     @mock.patch.object(AWSAthenaHook, 'check_query_status', side_effect=(None, None,))
@@ -100,7 +99,7 @@ class TestAWSAthenaOperator(unittest.TestCase):
         with self.assertRaises(Exception):
             self.athena.execute(None)
         mock_run_query.assert_called_once_with(MOCK_DATA['query'], query_context, result_configuration,
-                                               MOCK_DATA['client_request_token'], MOCK_DATA['workgroup'])
+                                               MOCK_DATA['client_request_token'])
         self.assertEqual(mock_check_query_status.call_count, 3)
 
     @mock.patch.object(AWSAthenaHook, 'get_state_change_reason')
@@ -112,7 +111,7 @@ class TestAWSAthenaOperator(unittest.TestCase):
         with self.assertRaises(Exception):
             self.athena.execute(None)
         mock_run_query.assert_called_once_with(MOCK_DATA['query'], query_context, result_configuration,
-                                               MOCK_DATA['client_request_token'], MOCK_DATA['workgroup'])
+                                               MOCK_DATA['client_request_token'])
         self.assertEqual(mock_check_query_status.call_count, 2)
         self.assertEqual(mock_get_state_change_reason.call_count, 1)
 
@@ -123,7 +122,7 @@ class TestAWSAthenaOperator(unittest.TestCase):
         with self.assertRaises(Exception):
             self.athena.execute(None)
         mock_run_query.assert_called_once_with(MOCK_DATA['query'], query_context, result_configuration,
-                                               MOCK_DATA['client_request_token'], MOCK_DATA['workgroup'])
+                                               MOCK_DATA['client_request_token'])
         self.assertEqual(mock_check_query_status.call_count, 3)
 
     @mock.patch.object(AWSAthenaHook, 'check_query_status', side_effect=("RUNNING", "RUNNING", "RUNNING",))
@@ -133,7 +132,7 @@ class TestAWSAthenaOperator(unittest.TestCase):
         with self.assertRaises(Exception):
             self.athena.execute(None)
         mock_run_query.assert_called_once_with(MOCK_DATA['query'], query_context, result_configuration,
-                                               MOCK_DATA['client_request_token'], MOCK_DATA['workgroup'])
+                                               MOCK_DATA['client_request_token'])
         self.assertEqual(mock_check_query_status.call_count, 3)
 
     @mock.patch.object(AWSAthenaHook, 'check_query_status', side_effect=("SUCCESS",))

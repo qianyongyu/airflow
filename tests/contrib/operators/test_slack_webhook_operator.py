@@ -33,7 +33,6 @@ class TestSlackWebhookOperator(unittest.TestCase):
         'webhook_token': 'manual_token',
         'message': 'your message here',
         'attachments': [{'fallback': 'Required plain-text summary'}],
-        'blocks': [{'type': 'section', 'text': {'type': 'mrkdwn', 'text': '*bold text*'}}],
         'channel': '#general',
         'username': 'SlackMcSlackFace',
         'icon_emoji': ':hankey',
@@ -61,7 +60,6 @@ class TestSlackWebhookOperator(unittest.TestCase):
         self.assertEqual(self._config['webhook_token'], operator.webhook_token)
         self.assertEqual(self._config['message'], operator.message)
         self.assertEqual(self._config['attachments'], operator.attachments)
-        self.assertEqual(self._config['blocks'], operator.blocks)
         self.assertEqual(self._config['channel'], operator.channel)
         self.assertEqual(self._config['username'], operator.username)
         self.assertEqual(self._config['icon_emoji'], operator.icon_emoji)
@@ -76,8 +74,7 @@ class TestSlackWebhookOperator(unittest.TestCase):
             **self._config
         )
 
-        template_fields = ['webhook_token', 'message', 'attachments', 'blocks', 'channel',
-                           'username', 'proxy']
+        template_fields = ['webhook_token', 'message', 'attachments', 'channel', 'username', 'proxy']
 
         self.assertEqual(operator.template_fields, template_fields)
 

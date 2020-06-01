@@ -21,6 +21,7 @@ from parameterized import parameterized
 from tests.test_utils.system_tests_class import SystemTest
 
 
+@SystemTest.skip()
 class TestExampleDagsSystem(SystemTest):
     @parameterized.expand([
         "example_bash_operator",

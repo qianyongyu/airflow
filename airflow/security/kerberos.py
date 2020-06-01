@@ -83,9 +83,7 @@ def renew_from_kt(principal, keytab):
     if subp.returncode != 0:
         log.error(
             "Couldn't reinit from keytab! `kinit' exited with %s.\n%s\n%s",
-            subp.returncode,
-            "\n".join(subp.stdout.readlines() if subp.stdout else []),
-            "\n".join(subp.stderr.readlines() if subp.stderr else [])
+            subp.returncode, "\n".join(subp.stdout.readlines()), "\n".join(subp.stderr.readlines())
         )
         sys.exit(subp.returncode)
 

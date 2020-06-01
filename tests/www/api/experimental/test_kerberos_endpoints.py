@@ -24,8 +24,6 @@ import unittest
 
 from datetime import datetime
 
-import pytest
-
 from airflow.configuration import conf
 from airflow.api.auth.backend.kerberos_auth import CLIENT_AUTH
 from airflow.utils.net import get_hostname
@@ -33,7 +31,8 @@ from airflow.www import app as application
 from tests.test_utils.config import conf_vars
 
 
-@pytest.mark.integration("kerberos")
+@unittest.skipIf('KRB5_KTNAME' not in os.environ,
+                 'Skipping Kerberos API tests due to missing KRB5_KTNAME')
 @conf_vars({('api', 'auth_backend'): 'airflow.contrib.auth.backends.kerberos_auth'})
 class ApiKerberosTests(unittest.TestCase):
     def setUp(self):

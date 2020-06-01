@@ -68,9 +68,6 @@ class DagBag(BaseDagBag, LoggingMixin):
         file has been skipped. This is to prevent overloading the user with logging
         messages about skipped files. Therefore only once per DagBag is a file logged
         being skipped.
-    :param store_serialized_dags: Read DAGs from DB if store_serialized_dags is ``True``.
-        If ``False`` DAGs are read from python files.
-    :type store_serialized_dags: bool
     """
 
     # static class variables to detetct dag cycle
@@ -86,14 +83,13 @@ class DagBag(BaseDagBag, LoggingMixin):
             dag_folder=None,
             executor=None,
             include_examples=conf.getboolean('core', 'LOAD_EXAMPLES'),
-            safe_mode=conf.getboolean('core', 'DAG_DISCOVERY_SAFE_MODE'),
-            store_serialized_dags=False,
-    ):
+            safe_mode=conf.getboolean('core', 'DAG_DISCOVERY_SAFE_MODE')):
 
         # do not use default arg in signature, to fix import cycle on plugin load
         if executor is None:
             executor = get_default_executor()
         dag_folder = dag_folder or settings.DAGS_FOLDER
+        self.log.info("Filling up the DagBag from %s", dag_folder)
         self.dag_folder = dag_folder
         self.dags = {}
         # the file's last modified timestamp when we last read it
@@ -101,7 +97,6 @@ class DagBag(BaseDagBag, LoggingMixin):
         self.executor = executor
         self.import_errors = {}
         self.has_logged = False
-        self.store_serialized_dags = store_serialized_dags
 
         self.collect_dags(
             dag_folder=dag_folder,
@@ -121,52 +116,25 @@ class DagBag(BaseDagBag, LoggingMixin):
     def get_dag(self, dag_id):
         """
         Gets the DAG out of the dictionary, and refreshes it if expired
-
-        :param dag_id: DAG Id
-        :type dag_id: str
         """
         from airflow.models.dag import DagModel  # Avoid circular import
 
-        # Only read DAGs from DB if this dagbag is store_serialized_dags.
-        if self.store_serialized_dags:
-            # Import here so that serialized dag is only imported when serialization is enabled
-            from airflow.models.serialized_dag import SerializedDagModel
-            if dag_id not in self.dags:
-                # Load from DB if not (yet) in the bag
-                row = SerializedDagModel.get(dag_id)
-                if not row:
-                    return None
-
-                dag = row.dag
-                for subdag in dag.subdags:
-                    self.dags[subdag.dag_id] = subdag
-                self.dags[dag.dag_id] = dag
-
-            return self.dags.get(dag_id)
-
         # If asking for a known subdag, we want to refresh the parent
-        dag = None
         root_dag_id = dag_id
         if dag_id in self.dags:
             dag = self.dags[dag_id]
             if dag.is_subdag:
                 root_dag_id = dag.parent_dag.dag_id
 
-        # Needs to load from file for a store_serialized_dags dagbag.
-        enforce_from_file = False
-        if self.store_serialized_dags and dag is not None:
-            from airflow.serialization.serialized_objects import SerializedDAG
-            enforce_from_file = isinstance(dag, SerializedDAG)
-
         # If the dag corresponding to root_dag_id is absent or expired
         orm_dag = DagModel.get_current(root_dag_id)
-        if (orm_dag and (
+        if orm_dag and (
                 root_dag_id not in self.dags or
                 (
                     orm_dag.last_expired and
                     dag.last_loaded < orm_dag.last_expired
                 )
-        )) or enforce_from_file:
+        ):
             # Reprocess source file
             found_dags = self.process_file(
                 filepath=correct_maybe_zipped(orm_dag.fileloc), only_if_updated=False)
@@ -285,8 +253,8 @@ class DagBag(BaseDagBag, LoggingMixin):
                     try:
                         dag.is_subdag = False
                         self.bag_dag(dag, parent_dag=dag, root_dag=dag)
-                        if isinstance(dag.normalized_schedule_interval, six.string_types):
-                            croniter(dag.normalized_schedule_interval)
+                        if isinstance(dag._schedule_interval, six.string_types):
+                            croniter(dag._schedule_interval)
                         found_dags.append(dag)
                         found_dags += dag.subdags
                     except (CroniterBadCronError,
@@ -390,10 +358,6 @@ class DagBag(BaseDagBag, LoggingMixin):
         **Note**: The patterns in .airflowignore are treated as
         un-anchored regexes, not shell-like glob patterns.
         """
-        if self.store_serialized_dags:
-            return
-
-        self.log.info("Filling up the DagBag from %s", dag_folder)
         dag_folder = dag_folder or self.dag_folder
         # Used to store stats around DagBag processing
         stats = []
@@ -437,27 +401,6 @@ class DagBag(BaseDagBag, LoggingMixin):
                 Stats.timing('dag.loading-duration.{}'.
                              format(dag_names),
                              file_stat.duration)
-
-    def collect_dags_from_db(self):
-        """Collects DAGs from database."""
-        from airflow.models.serialized_dag import SerializedDagModel
-        start_dttm = timezone.utcnow()
-        self.log.info("Filling up the DagBag from database")
-
-        # The dagbag contains all rows in serialized_dag table. Deleted DAGs are deleted
-        # from the table by the scheduler job.
-        self.dags = SerializedDagModel.read_all_dags()
-
-        # Adds subdags.
-        # DAG post-processing steps such as self.bag_dag and croniter are not needed as
-        # they are done by scheduler before serialization.
-        subdags = {}
-        for dag in self.dags.values():
-            for subdag in dag.subdags:
-                subdags[subdag.dag_id] = subdag
-        self.dags.update(subdags)
-
-        Stats.timing('collect_db_dags', timezone.utcnow() - start_dttm)
 
     def dagbag_report(self):
         """Prints a report around DagBag loading stats"""

@@ -30,8 +30,6 @@ from airflow.models.baseoperator import BaseOperator, BaseOperatorLink
 from airflow.models.taskinstance import TaskInstance
 from airflow.utils.decorators import apply_defaults
 
-BIGQUERY_JOB_DETAILS_LINK_FMT = 'https://console.cloud.google.com/bigquery?j={job_id}'
-
 
 class BigQueryConsoleLink(BaseOperatorLink):
     """
@@ -42,31 +40,8 @@ class BigQueryConsoleLink(BaseOperatorLink):
     def get_link(self, operator, dttm):
         ti = TaskInstance(task=operator, execution_date=dttm)
         job_id = ti.xcom_pull(task_ids=operator.task_id, key='job_id')
-        return BIGQUERY_JOB_DETAILS_LINK_FMT.format(job_id=job_id) if job_id else ''
-
-
-class BigQueryConsoleIndexableLink(BaseOperatorLink):
-    """
-    Helper class for constructing BigQuery link.
-    """
-
-    def __init__(self, index):
-        super(BigQueryConsoleIndexableLink, self).__init__()
-        self.index = index
-
-    @property
-    def name(self):  # type: () -> str
-        return 'BigQuery Console #{index}'.format(index=self.index + 1)
-
-    def get_link(self, operator, dttm):
-        ti = TaskInstance(task=operator, execution_date=dttm)
-        job_ids = ti.xcom_pull(task_ids=operator.task_id, key='job_id')
-        if not job_ids:
-            return None
-        if len(job_ids) < self.index:
-            return None
-        job_id = job_ids[self.index]
-        return BIGQUERY_JOB_DETAILS_LINK_FMT.format(job_id=job_id)
+        return 'https://console.cloud.google.com/bigquery?j={job_id}'.format(
+            job_id=job_id) if job_id else ''
 
 
 # pylint: disable=too-many-instance-attributes
@@ -168,18 +143,9 @@ class BigQueryOperator(BaseOperator):
     template_ext = ('.sql', )
     ui_color = '#e4f0e8'
 
-    @property
-    def operator_extra_links(self):
-        """
-        Return operator extra links
-        """
-        if isinstance(self.sql, str):
-            return (
-                BigQueryConsoleLink(),
-            )
-        return (
-            BigQueryConsoleIndexableLink(i) for i, _ in enumerate(self.sql)
-        )
+    operator_extra_links = (
+        BigQueryConsoleLink(),
+    )
 
     # pylint: disable=too-many-arguments, too-many-locals
     @apply_defaults

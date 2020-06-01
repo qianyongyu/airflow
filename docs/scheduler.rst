@@ -64,26 +64,24 @@ preferably a
 a ``str``, or a ``datetime.timedelta`` object. Alternatively, you can also
 use one of these cron "preset":
 
-+----------------+----------------------------------------------------------------+-----------------+
-| preset         | meaning                                                        | cron            |
-+================+================================================================+=================+
-| ``None``       | Don't schedule, use for exclusively "externally triggered"     |                 |
-|                | DAGs                                                           |                 |
-+----------------+----------------------------------------------------------------+-----------------+
-| ``@once``      | Schedule once and only once                                    |                 |
-+----------------+----------------------------------------------------------------+-----------------+
-| ``@hourly``    | Run once an hour at the beginning of the hour                  | ``0 * * * *``   |
-+----------------+----------------------------------------------------------------+-----------------+
-| ``@daily``     | Run once a day at midnight                                     | ``0 0 * * *``   |
-+----------------+----------------------------------------------------------------+-----------------+
-| ``@weekly``    | Run once a week at midnight on Sunday morning                  | ``0 0 * * 0``   |
-+----------------+----------------------------------------------------------------+-----------------+
-| ``@monthly``   | Run once a month at midnight of the first day of the month     | ``0 0 1 * *``   |
-+----------------+----------------------------------------------------------------+-----------------+
-| ``@quarterly`` | Run once a quarter at midnight on the first day                | ``0 0 1 */3 *`` |
-+----------------+----------------------------------------------------------------+-----------------+
-| ``@yearly``    | Run once a year at midnight of January 1                       | ``0 0 1 1 *``   |
-+----------------+----------------------------------------------------------------+-----------------+
++--------------+----------------------------------------------------------------+---------------+
+| preset       | meaning                                                        | cron          |
++==============+================================================================+===============+
+| ``None``     | Don't schedule, use for exclusively "externally triggered"     |               |
+|              | DAGs                                                           |               |
++--------------+----------------------------------------------------------------+---------------+
+| ``@once``    | Schedule once and only once                                    |               |
++--------------+----------------------------------------------------------------+---------------+
+| ``@hourly``  | Run once an hour at the beginning of the hour                  | ``0 * * * *`` |
++--------------+----------------------------------------------------------------+---------------+
+| ``@daily``   | Run once a day at midnight                                     | ``0 0 * * *`` |
++--------------+----------------------------------------------------------------+---------------+
+| ``@weekly``  | Run once a week at midnight on Sunday morning                  | ``0 0 * * 0`` |
++--------------+----------------------------------------------------------------+---------------+
+| ``@monthly`` | Run once a month at midnight of the first day of the month     | ``0 0 1 * *`` |
++--------------+----------------------------------------------------------------+---------------+
+| ``@yearly``  | Run once a year at midnight of January 1                       | ``0 0 1 1 *`` |
++--------------+----------------------------------------------------------------+---------------+
 
 **Note**: Use ``schedule_interval=None`` and not ``schedule_interval='None'`` when
 you don't want to schedule your DAG.
@@ -187,8 +185,3 @@ Here are some of the ways you can **unblock tasks**:
   or for instance when the fix has been applied outside of Airflow.
 * The ``airflow backfill`` CLI subcommand has a flag to ``--mark_success`` and allows selecting
   subsections of the DAG as well as specifying date ranges.
-
-If you want to use 'external trigger' to run future-dated execution dates, set ``allow_trigger_in_future = True`` in ``scheduler`` section in ``airflow.cfg``.
-This only has effect if your DAG has no ``schedule_interval``.
-If you keep default ``allow_trigger_in_future = False`` and try 'external trigger' to run future-dated execution dates,
-the scheduler won't execute it now but the scheduler will execute it in the future once the current date rolls over to the execution date.
