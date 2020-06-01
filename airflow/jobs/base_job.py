@@ -122,7 +122,7 @@ class BaseJob(Base, LoggingMixin):
         """
         return (
             self.state == State.RUNNING and
-            (timezone.utcnow() - self.latest_heartbeat).seconds < self.heartrate * grace_multiplier
+            (timezone.utcnow() - self.latest_heartbeat).total_seconds() < self.heartrate * grace_multiplier
         )
 
     @provide_session
@@ -141,7 +141,6 @@ class BaseJob(Base, LoggingMixin):
         """
         Will be called when an external kill command is received
         """
-        pass
 
     def heartbeat_callback(self, session=None):
         pass
